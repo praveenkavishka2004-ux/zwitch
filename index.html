@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zwitch — Smart Classroom Energy Management | Team ZYNTRIX</title>
+  <link rel="icon" href="./logo.png" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: {
+        fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'], mono: ['JetBrains Mono', 'Fira Code', 'monospace'] }
+      } }
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body class="font-sans bg-[#0E0F12] text-white transition-colors duration-500" id="appBody">
+
+  <!-- ═════════ HEADER ═════════ -->
+  <header id="mainHeader" class="sticky top-0 z-50 backdrop-blur-xl border-b bg-[#0E0F12]/80 border-[#262933] transition-colors duration-500">
+    <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16 sm:h-20">
+
+        <div class="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+          <img src="./logo.png" alt="ZYNTRIX Logo" class="w-8 h-8 sm:w-10 sm:h-10 rounded-lg object-contain drop-shadow-[0_0_15px_rgba(140,255,0,0.15)]" />
+          <div class="flex flex-col leading-tight">
+            <span class="text-[10px] sm:text-xs font-bold tracking-[0.2em] uppercase text-[#8CFF00]">ZYNTRIX</span>
+            <span class="text-xs sm:text-base lg:text-lg font-semibold tracking-tight"><span class="hidden sm:inline">Project </span><span class="text-white/90">Zwitch</span></span>
+          </div>
+        </div>
+
+        <nav class="hidden lg:flex items-center gap-1 bg-[#181A20] rounded-2xl px-2 py-1.5">
+          <a href="#dashboard" class="nav-link active px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300">Dashboard</a>
+          <a href="#controls" class="nav-link px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300">Controls</a>
+          <a href="#reports" class="nav-link px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300">Reports</a>
+        </nav>
+
+        <div class="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
+          <div class="flex items-center gap-1 sm:gap-2">
+            <div class="relative flex items-center">
+              <select id="roomSelector" aria-label="Select Room"
+                class="appearance-none bg-[#181A20] border border-[#262933] text-white text-xs sm:text-sm font-medium rounded-xl pl-3 pr-7 py-1.5 sm:py-2 focus:outline-none focus:border-[#8CFF00] hover:border-[#8CFF00]/40 transition-all cursor-pointer max-w-[130px] sm:max-w-[200px] truncate"></select>
+              <svg class="absolute right-2 w-3.5 h-3.5 text-[#8C919F] pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
+            </div>
+
+            <button id="openManageRoomModalBtn" type="button" title="Manage current room"
+              class="p-1.5 sm:p-2 rounded-xl text-[#8C919F] hover:text-[#8CFF00] bg-[#181A20] hover:bg-[#262933] border border-[#262933] transition-all cursor-pointer">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+            </button>
+
+            <button id="openAddRoomModalBtn" type="button" title="Add room"
+              class="group flex items-center gap-1.5 px-2 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold bg-[#8CFF00] text-[#0E0F12] hover:bg-[#9dff24] active:scale-[0.97] transition-all cursor-pointer">
+              <svg class="w-4 h-4 transition-transform duration-300 group-hover:rotate-90" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
+              <span class="hidden sm:inline">Add Room</span>
+            </button>
+          </div>
+
+          <div class="hidden sm:flex items-center">
+            <button id="themeToggle" class="relative w-14 h-7 sm:w-16 sm:h-8 rounded-full p-1 bg-[#262933] hover:bg-[#2f323d] cursor-pointer transition-colors duration-500" aria-label="Toggle theme">
+              <span id="themeKnob" class="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[#8CFF00] shadow-lg shadow-[#8CFF00]/40 transition-all duration-500">
+                <svg id="sunIcon" class="w-3 h-3 text-[#0E0F12] hidden" fill="currentColor" viewBox="0 0 20 20"><circle cx="10" cy="10" r="4" /></svg>
+                <svg id="moonIcon" class="w-3 h-3 text-[#0E0F12]" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" /></svg>
+              </span>
+            </button>
+          </div>
+
+          <div class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#181A20] border border-[#262933]">
+            <span class="relative flex h-2.5 w-2.5">
+              <span id="topLiveBadge" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#8CFF00] opacity-75"></span>
+              <span id="topLiveDot" class="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#8CFF00]"></span>
+            </span>
+            <span id="topLiveText" class="text-xs font-medium text-[#8C919F]">LIVE</span>
+          </div>
+
+          <button id="mobileMenuBtn" class="lg:hidden p-2 rounded-xl bg-[#181A20] border border-[#262933] hover:bg-[#262933] cursor-pointer" aria-label="Menu">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="mobileNav" class="lg:hidden hidden border-t border-[#262933] bg-[#0E0F12]/95 backdrop-blur-xl">
+      <div class="px-4 py-3 space-y-1">
+        <a href="#dashboard" class="block px-4 py-2.5 rounded-xl text-sm font-medium text-[#8CFF00] bg-[#262933]">Dashboard</a>
+        <a href="#controls" class="block px-4 py-2.5 rounded-xl text-sm font-medium text-[#8C919F] hover:text-white hover:bg-[#181A20]">Controls</a>
+        <a href="#reports" class="block px-4 py-2.5 rounded-xl text-sm font-medium text-[#8C919F] hover:text-white hover:bg-[#181A20]">Reports</a>
+      </div>
+      <div class="px-4 py-3 border-t border-[#262933]/70 flex items-center justify-between sm:hidden">
+        <span class="text-xs font-medium text-[#8C919F]">Appearance</span>
+        <button id="mobileThemeToggle" type="button" class="px-3 py-1.5 rounded-xl bg-[#262933] text-xs font-semibold text-[#8CFF00]"><span id="mobileThemeLabel">Dark Theme</span></button>
+      </div>
+      <div class="px-4 py-3 border-t border-[#262933]/70 space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-semibold text-[#8C919F] uppercase tracking-wider">Rooms</span>
+          <span id="mobileActiveRoomLabel" class="text-xs font-medium text-[#8CFF00]">—</span>
+        </div>
+        <div id="mobileRoomList" class="flex flex-wrap gap-1.5"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ═════════ MAIN ═════════ -->
+  <main class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10 space-y-6 sm:space-y-8 lg:space-y-10">
+
+    <!-- Hero -->
+    <section id="dashboard" class="space-y-2">
+      <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+        <div>
+          <div class="flex items-center gap-2.5 flex-wrap">
+            <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight">Energy Dashboard</h1>
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#8CFF00]/10 text-[#8CFF00] border border-[#8CFF00]/25">
+              <span class="w-2 h-2 rounded-full bg-[#8CFF00] animate-pulse"></span>
+              <span id="activeRoomBadgeText">No Room</span>
+            </span>
+          </div>
+          <p class="text-[#8C919F] text-sm sm:text-base mt-1 flex items-center gap-2 flex-wrap">
+            <span>Real-time smart classroom monitoring &amp; control</span>
+            <span class="text-[#262933] hidden sm:inline">•</span>
+            <span class="text-xs">Active Controller: <span id="activeDeviceId" class="font-mono text-white/90 font-medium">—</span></span>
+          </p>
+        </div>
+        <div class="flex items-center gap-2 text-xs text-[#8C919F]">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          <span>Last data: <span id="lastSync" class="text-white font-medium">—</span></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Status cards -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+
+      <div class="dashboard-card rounded-2xl p-5 sm:p-6 bg-[#181A20] border border-[#262933] hover:border-[#8CFF00]/30 transition-all duration-500">
+        <div class="flex items-start justify-between mb-4">
+          <div class="w-10 h-10 rounded-xl bg-[#262933] flex items-center justify-center">
+            <svg class="w-5 h-5 text-[#8CFF00]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5.636 18.364a9 9 0 010-12.728m12.728 0a9 9 0 010 12.728M9.172 15.828a5 5 0 010-7.072m5.656 0a5 5 0 010 7.072M12 12h.01" /></svg>
+          </div>
+          <span id="presenceBadge" class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#8C919F]/15 text-[#8C919F] border border-[#8C919F]/20">—</span>
+        </div>
+        <p class="text-[#8C919F] text-xs font-medium uppercase tracking-wider mb-1">Radar Presence</p>
+        <p id="presenceStatus" class="text-xl sm:text-2xl font-bold">—</p>
+        <div class="mt-3 flex items-center gap-1.5">
+          <span class="relative flex h-2 w-2">
+            <span id="presencePing" class="absolute inline-flex h-full w-full rounded-full bg-[#8C919F] opacity-75"></span>
+            <span id="presenceDot" class="relative inline-flex rounded-full h-2 w-2 bg-[#8C919F]"></span>
+          </span>
+          <span id="presenceSubtext" class="text-xs text-[#8C919F]">Waiting for data…</span>
+        </div>
+      </div>
+
+      <div class="dashboard-card rounded-2xl p-5 sm:p-6 bg-[#181A20] border border-[#262933] hover:border-[#8CFF00]/30 transition-all duration-500">
+        <div class="flex items-start justify-between mb-4">
+          <div class="w-10 h-10 rounded-xl bg-[#262933] flex items-center justify-center">
+            <svg class="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+          </div>
+          <span id="lightBadge" class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#8C919F]/15 text-[#8C919F] border border-[#8C919F]/20">—</span>
+        </div>
+        <p class="text-[#8C919F] text-xs font-medium uppercase tracking-wider mb-1">Light Status</p>
+        <p id="lightStatus" class="text-xl sm:text-2xl font-bold">—</p>
+        <div class="mt-3 flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-[#8C919F]" id="lightDot"></span>
+          <span id="lightSubtext" class="text-xs text-[#8C919F]">Waiting for data…</span>
+        </div>
+      </div>
+
+      <div class="dashboard-card rounded-2xl p-5 sm:p-6 bg-[#181A20] border border-[#262933] hover:border-[#8CFF00]/30 transition-all duration-500">
+        <div class="flex items-start justify-between mb-4">
+          <div class="w-10 h-10 rounded-xl bg-[#262933] flex items-center justify-center">
+            <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+          </div>
+          <span id="acBadge" class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#8C919F]/15 text-[#8C919F] border border-[#8C919F]/20">—</span>
+        </div>
+        <p class="text-[#8C919F] text-xs font-medium uppercase tracking-wider mb-1">A/C Status</p>
+        <p id="acStatus" class="text-xl sm:text-2xl font-bold">—</p>
+        <div class="mt-3 flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-[#8C919F]" id="acDot"></span>
+          <span id="acSubtext" class="text-xs text-[#8C919F]">Waiting for data…</span>
+        </div>
+      </div>
+
+      <!-- Automation -->
+      <div class="dashboard-card relative overflow-hidden rounded-2xl p-5 sm:p-6 bg-[#181A20] border border-[#262933] hover:border-[#8CFF00]/40 transition-all duration-500 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 rounded-xl bg-[#8CFF00]/10 border border-[#8CFF00]/20 flex items-center justify-center text-[#8CFF00]">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+              </div>
+              <div>
+                <p class="text-[9px] text-[#8C919F] uppercase tracking-wider font-semibold">Engine</p>
+                <h3 class="text-xs sm:text-sm font-bold tracking-tight">Automation Status</h3>
+              </div>
+            </div>
+            <div class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#0E0F12] border border-[#262933]">
+              <span class="relative flex h-2 w-2">
+                <span id="autoPulsePing" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#8C919F] opacity-75"></span>
+                <span id="autoPulseDot" class="relative inline-flex rounded-full h-2 w-2 bg-[#8C919F]"></span>
+              </span>
+              <span id="autoEnginePill" class="text-[9px] font-mono font-bold tracking-wider text-[#8C919F] uppercase">IDLE</span>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <p id="automationStateText" class="text-base sm:text-lg font-bold tracking-tight">Waiting…</p>
+            <p id="automationStateSubtext" class="text-[11px] text-[#8C919F] mt-0.5 leading-snug">No data from controller yet</p>
+          </div>
+
+          <div class="p-2.5 rounded-xl bg-[#0E0F12]/90 border border-[#262933] flex items-center justify-between">
+            <div>
+              <span id="countdownLabel" class="text-[9px] uppercase tracking-wider font-semibold text-[#8C919F] block">Shutdown countdown:</span>
+              <span id="countdownContext" class="text-[10px] text-white/90">—</span>
+            </div>
+            <span id="countdownTimerDigits" class="font-mono text-xl sm:text-2xl font-black text-[#8CFF00] tracking-tight">--:--</span>
+          </div>
+
+          <div class="mt-3 pt-2.5 border-t border-[#262933]">
+            <div class="flex items-center justify-between text-[9px] font-semibold uppercase tracking-wider text-[#8C919F] mb-1.5">
+              <span>Sequence Timeline</span>
+              <span id="timelineStepCounter" class="font-mono text-[#8CFF00]">Step 1 / 5</span>
+            </div>
+            <div class="grid grid-cols-5 gap-1 text-center">
+              <div id="stepOccupied" class="timeline-step flex flex-col items-center gap-0.5 p-1 rounded-lg bg-[#262933]/40 border border-[#262933]"><span class="step-num w-3.5 h-3.5 rounded-full bg-[#262933] text-[#8C919F] font-mono text-[8px] font-bold flex items-center justify-center">1</span><span class="step-label text-[8px] font-medium text-[#8C919F]">Occupied</span></div>
+              <div id="stepCountdown" class="timeline-step flex flex-col items-center gap-0.5 p-1 rounded-lg bg-[#262933]/40 border border-[#262933]"><span class="step-num w-3.5 h-3.5 rounded-full bg-[#262933] text-[#8C919F] font-mono text-[8px] font-bold flex items-center justify-center">2</span><span class="step-label text-[8px] font-medium text-[#8C919F]">Count</span></div>
+              <div id="stepLightsOff" class="timeline-step flex flex-col items-center gap-0.5 p-1 rounded-lg bg-[#262933]/40 border border-[#262933]"><span class="step-num w-3.5 h-3.5 rounded-full bg-[#262933] text-[#8C919F] font-mono text-[8px] font-bold flex items-center justify-center">3</span><span class="step-label text-[8px] font-medium text-[#8C919F]">Lights</span></div>
+              <div id="stepVerifyAC" class="timeline-step flex flex-col items-center gap-0.5 p-1 rounded-lg bg-[#262933]/40 border border-[#262933]"><span class="step-num w-3.5 h-3.5 rounded-full bg-[#262933] text-[#8C919F] font-mono text-[8px] font-bold flex items-center justify-center">4</span><span class="step-label text-[8px] font-medium text-[#8C919F]">Verify</span></div>
+              <div id="stepStandby" class="timeline-step flex flex-col items-center gap-0.5 p-1 rounded-lg bg-[#262933]/40 border border-[#262933]"><span class="step-num w-3.5 h-3.5 rounded-full bg-[#262933] text-[#8C919F] font-mono text-[8px] font-bold flex items-center justify-center">5</span><span class="step-label text-[8px] font-medium text-[#8C919F]">Eco</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-3 pt-2 border-t border-[#262933] flex items-center justify-between">
+          <span class="text-[9px] text-[#8C919F]">A/C Verification:</span>
+          <span id="acVerifyBadge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[#8C919F]/10 text-[#8C919F] border border-[#8C919F]/20">
+            <span id="acVerifyBadgeText">—</span>
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Operation mode -->
+    <section class="rounded-2xl p-5 sm:p-6 bg-[#181A20] border border-[#262933] hover:border-[#8CFF00]/30 transition-all duration-500">
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
+        <div class="flex items-start gap-3.5">
+          <div class="w-11 h-11 rounded-xl bg-[#8CFF00]/10 border border-[#8CFF00]/20 flex items-center justify-center text-[#8CFF00] flex-shrink-0">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          </div>
+          <div>
+            <div class="flex items-center gap-2.5 flex-wrap">
+              <h2 class="text-base sm:text-lg font-semibold tracking-tight">System Operation Mode</h2>
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#8CFF00]/15 text-[#8CFF00] border border-[#8CFF00]/25">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#8CFF00] animate-pulse"></span><span id="modeStatusPillText">Always Active</span>
+              </span>
+            </div>
+            <p class="text-xs text-[#8C919F] mt-1 max-w-xl">Choose whether automation runs 24/7 or only during scheduled classroom hours. Saved to <span class="font-mono">rooms/&lt;id&gt;/config</span> in Firebase.</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-1.5 bg-[#0E0F12] p-1.5 rounded-xl border border-[#262933] self-start lg:self-auto">
+          <button type="button" id="modeBtnAlways" class="mode-toggle-btn active px-3.5 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer">Always Active</button>
+          <button type="button" id="modeBtnSchedule" class="mode-toggle-btn px-3.5 py-2 rounded-lg text-xs font-semibold text-[#8C919F] hover:text-white transition-all cursor-pointer">Schedule Based</button>
+        </div>
+      </div>
+
+      <div id="scheduleConfigContainer" class="hidden mt-5 pt-5 border-t border-[#262933] animate-fade-in">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+          <div class="space-y-1.5">
+            <label for="scheduleStartTime" class="block text-xs font-semibold uppercase tracking-wider text-[#8C919F]">Start Time</label>
+            <input type="time" id="scheduleStartTime" value="08:00" class="w-full px-3.5 py-2.5 rounded-xl bg-[#262933] border border-[#262933] text-white text-sm font-mono focus:outline-none focus:border-[#8CFF00]" />
+          </div>
+          <div class="space-y-1.5">
+            <label for="scheduleEndTime" class="block text-xs font-semibold uppercase tracking-wider text-[#8C919F]">End Time</label>
+            <input type="time" id="scheduleEndTime" value="18:00" class="w-full px-3.5 py-2.5 rounded-xl bg-[#262933] border border-[#262933] text-white text-sm font-mono focus:outline-none focus:border-[#8CFF00]" />
+          </div>
+          <div class="space-y-1.5">
+            <label for="scheduleDaysSelect" class="block text-xs font-semibold uppercase tracking-wider text-[#8C919F]">Operating Days</label>
+            <select id="scheduleDaysSelect" class="w-full px-3.5 py-2.5 rounded-xl bg-[#262933] border border-[#262933] text-white text-sm font-medium focus:outline-none focus:border-[#8CFF00]">
+              <option value="mon-fri">Weekdays (Mon — Fri)</option>
+              <option value="mon-sat">Academic Week (Mon — Sat)</option>
+              <option value="all">Every Day (Mon — Sun)</option>
+            </select>
+          </div>
+          <button type="button" id="btnSaveSchedule" class="w-full py-2.5 px-4 rounded-xl text-sm font-semibold bg-[#8CFF00] text-[#0E0F12] hover:bg-[#9dff24] active:scale-[0.98] transition-all cursor-pointer">Save Schedule</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Chart + Activity -->
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
+      <div class="lg:col-span-2 rounded-2xl p-5 sm:p-6 bg-[#181A20] border border-[#262933]">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+          <div>
+            <h2 class="text-lg font-semibold">Energy Consumption</h2>
+            <p id="chartSubtitle" class="text-xs text-[#8C919F] mt-0.5">Measured kWh vs. estimated without automation</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button class="chart-period-btn active px-3 py-1.5 rounded-lg text-xs font-medium bg-[#262933] text-white" data-period="week">Week</button>
+            <button class="chart-period-btn px-3 py-1.5 rounded-lg text-xs font-medium text-[#8C919F] hover:bg-[#262933] hover:text-white transition-colors" data-period="month">Month</button>
+          </div>
+        </div>
+        <div class="relative h-56 sm:h-64 lg:h-72"><canvas id="energyChart"></canvas></div>
+        <p class="text-[10px] text-[#8C919F] mt-3">History builds up in this browser while the dashboard is open (the controller only reports live totals).</p>
+      </div>
+
+      <div class="rounded-2xl p-5 sm:p-6 bg-[#181A20] border border-[#262933]">
+        <div class="flex items-center justify-between mb-5">
+          <h2 class="text-lg font-semibold">Activity Log</h2>
+          <span class="text-xs text-[#8C919F]">Live events</span>
+        </div>
+        <div id="activityLog" class="space-y-4 max-h-64 lg:max-h-72 overflow-y-auto pr-1 custom-scrollbar"></div>
+      </div>
+    </section>
+
+    <!-- Manual controls -->
+    <section id="controls" class="rounded-2xl p-5 sm:p-7 bg-[#181A20] border border-[#262933]">
+      <div class="mb-6">
+        <h2 class="text-lg font-semibold">Manual Override Controls</h2>
+        <p class="text-xs text-[#8C919F] mt-0.5">Writes to <span class="font-mono">rooms/&lt;id&gt;/devices</span> — target: <span id="overrideTargetRoom" class="text-white font-medium">—</span></p>
+      </div>
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <button data-device="lights" data-cmd="off" class="control-btn rounded-xl p-5 bg-[#262933] border border-[#262933] hover:border-yellow-400/40 transition-all active:scale-[0.97] cursor-pointer">
+          <p class="text-2xl mb-2">💡</p><p class="text-sm font-semibold">Lights OFF</p><p class="text-[10px] text-[#8C919F] uppercase tracking-wider mt-1">Manual Override</p>
+        </button>
+        <button data-device="lights" data-cmd="on" class="control-btn rounded-xl p-5 bg-[#262933] border border-[#262933] hover:border-yellow-400/40 transition-all active:scale-[0.97] cursor-pointer">
+          <p class="text-2xl mb-2">💡</p><p class="text-sm font-semibold">Lights ON</p><p class="text-[10px] text-[#8C919F] uppercase tracking-wider mt-1">Manual Override</p>
+        </button>
+        <button data-device="ac" data-cmd="off" class="control-btn rounded-xl p-5 bg-[#262933] border border-[#262933] hover:border-cyan-400/40 transition-all active:scale-[0.97] cursor-pointer">
+          <p class="text-2xl mb-2">❄️</p><p class="text-sm font-semibold">A/C OFF</p><p class="text-[10px] text-[#8C919F] uppercase tracking-wider mt-1">Manual Override</p>
+        </button>
+        <button data-device="ac" data-cmd="on" class="control-btn rounded-xl p-5 bg-[#262933] border border-[#262933] hover:border-cyan-400/40 transition-all active:scale-[0.97] cursor-pointer">
+          <p class="text-2xl mb-2">❄️</p><p class="text-sm font-semibold">A/C ON</p><p class="text-[10px] text-[#8C919F] uppercase tracking-wider mt-1">Manual Override</p>
+        </button>
+      </div>
+    </section>
+
+    <!-- Reports -->
+    <section id="reports" class="rounded-2xl p-5 sm:p-7 bg-[#181A20] border border-[#262933]">
+      <div class="mb-6">
+        <h2 class="text-lg font-semibold">Reports &amp; Data Export</h2>
+        <p class="text-xs text-[#8C919F] mt-0.5">Download energy reports for the selected room</p>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="rounded-xl p-5 bg-[#262933] border border-[#262933] hover:border-[#8CFF00]/30 transition-all">
+          <p class="text-sm font-semibold">Daily Report</p>
+          <p class="text-[10px] text-[#8C919F] mb-4">CSV • Last 7 days</p>
+          <button data-report="daily" data-format="csv" class="w-full py-2.5 rounded-lg text-xs font-semibold uppercase tracking-wider bg-[#181A20] text-[#8CFF00] border border-[#8CFF00]/20 hover:bg-[#8CFF00] hover:text-[#0E0F12] transition-all cursor-pointer">Download CSV</button>
+        </div>
+        <div class="rounded-xl p-5 bg-[#262933] border border-[#262933] hover:border-purple-400/30 transition-all">
+          <p class="text-sm font-semibold">Monthly Report</p>
+          <p class="text-[10px] text-[#8C919F] mb-4">CSV • <span id="monthLabel">This month</span></p>
+          <button data-report="monthly" data-format="csv" class="w-full py-2.5 rounded-lg text-xs font-semibold uppercase tracking-wider bg-[#181A20] text-purple-400 border border-purple-400/20 hover:bg-purple-400 hover:text-[#0E0F12] transition-all cursor-pointer">Download CSV</button>
+        </div>
+        <div class="rounded-xl p-5 bg-[#262933] border border-[#262933] hover:border-cyan-400/30 transition-all">
+          <p class="text-sm font-semibold">Summary Report</p>
+          <p class="text-[10px] text-[#8C919F] mb-4">PDF • Full overview</p>
+          <button data-report="summary" data-format="pdf" class="w-full py-2.5 rounded-lg text-xs font-semibold uppercase tracking-wider bg-[#181A20] text-cyan-400 border border-cyan-400/20 hover:bg-cyan-400 hover:text-[#0E0F12] transition-all cursor-pointer">Download PDF</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Health / Config / Eco -->
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
+
+      <!-- Health -->
+      <div class="rounded-2xl p-5 sm:p-6 bg-[#181A20] border border-[#262933] flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-base sm:text-lg font-semibold">System Health</h2>
+            <span id="healthSummary" class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#8C919F]/15 text-[#8C919F] border border-[#8C919F]/25">—</span>
+          </div>
+          <div class="space-y-2.5">
+            <div class="flex items-center justify-between p-2.5 rounded-xl bg-[#262933]/40 border border-[#262933]/60">
+              <div class="flex items-center gap-2.5"><span id="espHealthDot" class="w-2 h-2 rounded-full bg-[#8C919F]"></span><span class="text-xs sm:text-sm">ESP32 (<span id="healthDeviceId" class="font-mono text-xs text-[#8C919F]">—</span>)</span></div>
+              <span id="espHealthStatus" class="text-xs text-[#8C919F] font-medium font-mono">—</span>
+            </div>
+            <div class="flex items-center justify-between p-2.5 rounded-xl bg-[#262933]/40 border border-[#262933]/60">
+              <div class="flex items-center gap-2.5"><span id="sonoffHealthDot" class="w-2 h-2 rounded-full bg-[#8C919F]"></span><span class="text-xs sm:text-sm">Sonoff (Lights)</span></div>
+              <span id="sonoffHealthStatus" class="text-xs text-[#8C919F] font-medium font-mono">—</span>
+            </div>
+            <div class="flex items-center justify-between p-2.5 rounded-xl bg-[#262933]/40 border border-[#262933]/60">
+              <div class="flex items-center gap-2.5"><span id="acNodeHealthDot" class="w-2 h-2 rounded-full bg-[#8C919F]"></span><span class="text-xs sm:text-sm">A/C Node</span></div>
+              <span id="acNodeHealthStatus" class="text-xs text-[#8C919F] font-medium font-mono">—</span>
+            </div>
+            <div class="flex items-center justify-between p-2.5 rounded-xl bg-[#262933]/40 border border-[#262933]/60">
+              <div class="flex items-center gap-2.5"><span id="rearHealthDot" class="w-2 h-2 rounded-full bg-[#8C919F]"></span><span class="text-xs sm:text-sm">Rear Sensor</span></div>
+              <span id="rearHealthStatus" class="text-xs text-[#8C919F] font-medium font-mono">—</span>
+            </div>
+            <div class="flex items-center justify-between p-2.5 rounded-xl bg-[#262933]/40 border border-[#262933]/60">
+              <div class="flex items-center gap-2.5"><span id="firebaseHealthDot" class="w-2 h-2 rounded-full bg-[#8C919F]"></span><span class="text-xs sm:text-sm">Firebase Realtime DB</span></div>
+              <span id="firebaseHealthStatus" class="text-xs text-[#8C919F] font-medium font-mono">—</span>
+            </div>
+          </div>
+        </div>
+        <div class="mt-5 pt-3.5 border-t border-[#262933] flex items-center justify-between text-[11px] text-[#8C919F]">
+          <span>Wi-Fi RSSI: <span id="healthRssi" class="text-white font-mono">—</span></span>
+          <span>Last seen: <span id="healthLastSeen" class="text-white font-mono">—</span></span>
+        </div>
+      </div>
+
+      <!-- Config -->
+      <div class="rounded-2xl p-5 sm:p-6 bg-[#181A20] border border-[#262933]">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-base sm:text-lg font-semibold">System Configuration</h2>
+          <span class="text-[10px] text-[#8C919F] font-mono">Parameters</span>
+        </div>
+        <form id="systemConfigForm" class="space-y-3.5">
+          <div class="space-y-1">
+            <label for="cfgTariffRate" class="block text-xs font-semibold uppercase tracking-wider text-[#8C919F]">Tariff Rate (LKR per kWh)</label>
+            <input type="number" id="cfgTariffRate" min="1" max="500" step="0.5" value="52.0" class="w-full px-3.5 py-2 rounded-xl bg-[#262933] border border-[#262933] text-sm font-mono text-white focus:outline-none focus:border-[#8CFF00]" />
+          </div>
+          <div class="space-y-1">
+            <div class="flex items-center justify-between text-xs">
+              <label for="cfgLightDelay" class="font-semibold uppercase tracking-wider text-[#8C919F]">Light Off Delay</label>
+              <span id="lightDelayVal" class="font-mono text-[#8CFF00] font-semibold bg-[#8CFF00]/10 px-2 py-0.5 rounded-md border border-[#8CFF00]/20">30s</span>
+            </div>
+            <input type="range" id="cfgLightDelay" min="10" max="300" step="5" value="30" class="w-full h-1.5 cursor-pointer" />
+          </div>
+          <div class="space-y-1">
+            <div class="flex items-center justify-between text-xs">
+              <label for="cfgAcDelay" class="font-semibold uppercase tracking-wider text-[#8C919F]">A/C Off Delay</label>
+              <span id="acDelayVal" class="font-mono text-cyan-400 font-semibold bg-cyan-400/10 px-2 py-0.5 rounded-md border border-cyan-400/20">5 min</span>
+            </div>
+            <input type="range" id="cfgAcDelay" min="1" max="30" step="1" value="5" class="w-full h-1.5 cursor-pointer" />
+          </div>
+          <button type="submit" id="btnSaveConfig" class="w-full py-2.5 rounded-xl text-sm font-semibold bg-[#262933] text-[#8CFF00] border border-[#8CFF00]/30 hover:bg-[#8CFF00] hover:text-[#0E0F12] active:scale-[0.98] transition-all cursor-pointer">Save Settings</button>
+        </form>
+      </div>
+
+      <!-- Eco -->
+      <div class="rounded-2xl p-5 sm:p-6 bg-[#181A20] border border-[#262933] flex flex-col justify-between hover:border-[#8CFF00]/30 transition-all duration-500">
+        <div>
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h2 class="text-base sm:text-lg font-semibold">Eco-Impact</h2>
+              <p class="text-[11px] text-[#8C919F]">From controller's saved-energy estimate</p>
+            </div>
+            <span id="pzemBadge" class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#8C919F]/15 text-[#8C919F] border border-[#8C919F]/20">PZEM —</span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div class="p-3.5 rounded-xl bg-[#0E0F12]/80 border border-[#262933]">
+              <span class="text-[10px] uppercase tracking-wider text-[#8C919F] font-semibold">CO₂ Prevented</span>
+              <p class="text-xl sm:text-2xl font-bold tracking-tight mt-1"><span id="ecoCo2Saved">0</span> <span class="text-xs font-normal text-[#8C919F]">kg</span></p>
+            </div>
+            <div class="p-3.5 rounded-xl bg-[#0E0F12]/80 border border-[#262933]">
+              <span class="text-[10px] uppercase tracking-wider text-[#8C919F] font-semibold">Trees Saved</span>
+              <p class="text-xl sm:text-2xl font-bold tracking-tight mt-1"><span id="ecoTreesSaved">0</span> <span class="text-xs font-normal text-[#8C919F]">yr-eq</span></p>
+            </div>
+          </div>
+
+          <div class="mt-3.5 p-3 rounded-xl bg-[#262933]/50 border border-[#262933] flex items-center justify-between text-xs">
+            <span class="text-[#8C919F]">Energy Saved:</span>
+            <div class="font-semibold"><span id="ecoKwhSaved">0</span> kWh <span class="text-[#8CFF00] font-mono text-[11px] ml-1">(~<span id="ecoCostSaved">0</span> LKR)</span></div>
+          </div>
+
+          <div class="mt-3 grid grid-cols-4 gap-2 text-center">
+            <div class="p-2 rounded-lg bg-[#0E0F12]/80 border border-[#262933]"><p class="text-[9px] uppercase text-[#8C919F]">Power</p><p class="text-xs font-mono font-semibold"><span id="liveWatts">—</span><span class="text-[#8C919F]"> W</span></p></div>
+            <div class="p-2 rounded-lg bg-[#0E0F12]/80 border border-[#262933]"><p class="text-[9px] uppercase text-[#8C919F]">Voltage</p><p class="text-xs font-mono font-semibold"><span id="liveVolts">—</span><span class="text-[#8C919F]"> V</span></p></div>
+            <div class="p-2 rounded-lg bg-[#0E0F12]/80 border border-[#262933]"><p class="text-[9px] uppercase text-[#8C919F]">Current</p><p class="text-xs font-mono font-semibold"><span id="liveAmps">—</span><span class="text-[#8C919F]"> A</span></p></div>
+            <div class="p-2 rounded-lg bg-[#0E0F12]/80 border border-[#262933]"><p class="text-[9px] uppercase text-[#8C919F]">Used</p><p class="text-xs font-mono font-semibold"><span id="liveKwh">—</span><span class="text-[#8C919F]"> kWh</span></p></div>
+          </div>
+        </div>
+        <div class="mt-4 pt-3 border-t border-[#262933] text-[10px] text-[#8C919F] flex items-center justify-between">
+          <span>Carbon factor: 0.77 kg CO₂/kWh</span>
+          <span class="text-[#8CFF00] font-semibold">Campus Sustainability</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="border-t border-[#262933] mt-8 transition-colors duration-500">
+    <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+        <div class="flex items-center gap-3">
+          <img src="./logo.png" alt="ZYNTRIX Logo" class="w-8 h-8 rounded-lg object-contain" />
+          <span class="text-sm font-semibold tracking-wide">ZYNTRIX</span>
+        </div>
+        <p class="text-xs text-[#8C919F]">&copy; 2026 Team ZYNTRIX. All Rights Reserved. | Project Zwitch — Intelligent Energy Management.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ═════════ ADD ROOM MODAL ═════════ -->
+  <div id="addRoomModal" class="fixed inset-0 z-[200] hidden items-center justify-center p-4 bg-black/80 backdrop-blur-md" role="dialog" aria-modal="true">
+    <div class="absolute inset-0" id="modalBackdrop"></div>
+    <div id="modalCard" class="relative w-full max-w-md rounded-2xl bg-[#181A20] border border-[#262933] shadow-2xl overflow-hidden z-10 animate-modal-enter">
+      <div class="h-1 w-full bg-gradient-to-r from-emerald-500 via-[#8CFF00] to-teal-400"></div>
+      <div class="p-6 sm:p-7 space-y-5">
+        <div class="flex items-start justify-between">
+          <div>
+            <h3 class="text-lg font-bold tracking-tight">Add New Room</h3>
+            <p class="text-xs text-[#8C919F] mt-0.5">The Device ID must match the Firebase node name exactly (rooms/&lt;Device ID&gt;)</p>
+          </div>
+          <button type="button" id="closeAddRoomModalBtn" class="p-1.5 rounded-lg text-[#8C919F] hover:text-white hover:bg-[#262933] cursor-pointer" aria-label="Close">✕</button>
+        </div>
+        <form id="addRoomForm" class="space-y-4" novalidate>
+          <div class="space-y-1.5">
+            <label for="newRoomName" class="block text-xs font-semibold uppercase tracking-wider text-[#8C919F]">Room Name *</label>
+            <input type="text" id="newRoomName" autocomplete="off" placeholder="e.g., Lecture Hall 4" class="w-full px-4 py-2.5 rounded-xl bg-[#0E0F12] border border-[#262933] text-sm text-white focus:outline-none focus:border-[#8CFF00]" />
+            <p id="roomNameError" class="hidden text-[11px] text-red-400">Please enter a room name.</p>
+          </div>
+          <div class="space-y-1.5">
+            <label for="newDeviceId" class="block text-xs font-semibold uppercase tracking-wider text-[#8C919F]">Device ID *</label>
+            <input type="text" id="newDeviceId" autocomplete="off" placeholder="e.g., ZW-DEMO1" class="w-full px-4 py-2.5 rounded-xl bg-[#0E0F12] border border-[#262933] font-mono text-sm text-white focus:outline-none focus:border-[#8CFF00]" />
+            <p id="deviceIdError" class="hidden text-[11px] text-red-400">Please enter a valid Device ID.</p>
+          </div>
+          <div class="flex items-center justify-end gap-3 pt-2">
+            <button type="button" id="cancelAddRoomBtn" class="px-4 py-2.5 rounded-xl text-sm font-semibold text-[#8C919F] bg-[#262933] hover:text-white cursor-pointer">Cancel</button>
+            <button type="submit" class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-[#8CFF00] text-[#0E0F12] hover:bg-[#9dff24] active:scale-[0.98] cursor-pointer">Save Room</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═════════ MANAGE ROOM MODAL ═════════ -->
+  <div id="manageRoomModal" class="fixed inset-0 z-[200] hidden items-center justify-center p-4 bg-black/80 backdrop-blur-md" role="dialog" aria-modal="true">
+    <div class="absolute inset-0" id="manageModalBackdrop"></div>
+    <div id="manageModalCard" class="relative w-full max-w-md rounded-2xl bg-[#181A20] border border-[#262933] shadow-2xl overflow-hidden z-10 animate-modal-enter">
+      <div class="h-1 w-full bg-gradient-to-r from-cyan-400 via-[#8CFF00] to-yellow-400"></div>
+      <div class="p-6 sm:p-7 space-y-5">
+        <div class="flex items-start justify-between">
+          <div>
+            <h3 class="text-lg font-bold tracking-tight">Manage Classroom</h3>
+            <p class="text-xs text-[#8C919F] mt-0.5">Rename the room or remove it from this dashboard</p>
+          </div>
+          <button type="button" id="closeManageRoomModalBtn" class="p-1.5 rounded-lg text-[#8C919F] hover:text-white hover:bg-[#262933] cursor-pointer" aria-label="Close">✕</button>
+        </div>
+        <form id="manageRoomForm" class="space-y-4" novalidate>
+          <div class="space-y-1.5">
+            <label for="editRoomName" class="block text-xs font-semibold uppercase tracking-wider text-[#8C919F]">Room Name *</label>
+            <input type="text" id="editRoomName" autocomplete="off" class="w-full px-4 py-2.5 rounded-xl bg-[#0E0F12] border border-[#262933] text-sm text-white focus:outline-none focus:border-[#8CFF00]" />
+            <p id="editRoomNameError" class="hidden text-[11px] text-red-400">Please enter a valid room name.</p>
+          </div>
+          <div class="space-y-1.5">
+            <label class="block text-xs font-semibold uppercase tracking-wider text-[#8C919F]">Firebase Node</label>
+            <div class="px-4 py-2.5 rounded-xl bg-[#0E0F12] border border-[#262933] text-sm font-mono text-white/90">rooms/<span id="manageDeviceIdDisplay">—</span></div>
+          </div>
+          <div class="p-3.5 rounded-xl bg-red-500/5 border border-red-500/20 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-red-400">Remove This Room</span>
+              <button type="button" id="btnDeleteRoom" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-400 bg-red-500/10 hover:bg-red-500 hover:text-white border border-red-500/30 transition-all cursor-pointer">Remove Room</button>
+            </div>
+            <p class="text-[11px] text-[#8C919F]">Removes it from this dashboard only. Data stored in Firebase is not deleted.</p>
+          </div>
+          <div class="flex items-center justify-end gap-3 pt-2">
+            <button type="button" id="cancelManageRoomBtn" class="px-4 py-2.5 rounded-xl text-sm font-semibold text-[#8C919F] bg-[#262933] hover:text-white cursor-pointer">Cancel</button>
+            <button type="submit" class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-[#8CFF00] text-[#0E0F12] hover:bg-[#9dff24] active:scale-[0.98] cursor-pointer">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="globalToast" class="fixed bottom-6 right-6 z-[300] hidden max-w-sm rounded-xl p-4 bg-[#181A20] border border-[#262933] shadow-2xl animate-slide-up">
+    <div class="flex items-start gap-3">
+      <div id="toastIcon" class="w-8 h-8 rounded-lg bg-[#8CFF00]/10 flex items-center justify-center flex-shrink-0 text-[#8CFF00]">✓</div>
+      <div>
+        <p id="toastTitle" class="text-sm font-semibold">Success</p>
+        <p id="toastMsg" class="text-xs text-[#8C919F] mt-0.5">Done.</p>
+      </div>
+      <button id="toastClose" class="ml-auto text-[#8C919F] hover:text-white cursor-pointer" aria-label="Dismiss">✕</button>
+    </div>
+  </div>
+
+  <script type="module" src="script.js"></script>
+</body>
+
+</html>
